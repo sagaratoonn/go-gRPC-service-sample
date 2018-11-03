@@ -8,7 +8,7 @@ import (
     "bytes"
     "image"
     "image/png"
-    "os"
+    _"os"
     "encoding/base64"
 	"google.golang.org/grpc"
 	pb "./pb"
@@ -31,18 +31,18 @@ func (s *MyService) CutImage(ctx context.Context, message *pb.CutRequest) (*pb.C
     fmt.Println("receviced message:")
 
     data, _ := base64.StdEncoding.DecodeString(message.Data);
-    cut(data, int(message.Left), int(message.Top), int(message.Width), int(message.Height));
+    result, _ := cut(data, int(message.Left), int(message.Top), int(message.Width), int(message.Height));
 
-    return &pb.CutReply{ Result: "XXXYYYZZZ" }, nil
+    return &pb.CutReply{ Result: result }, nil
 }
 
-func cut (imageData []byte, left int, top int, width int, height int) error {
+func cut (imageData []byte, left int, top int, width int, height int) (string, error) {
 
   r := bytes.NewReader(imageData)
   decodedImage, err := png.Decode(r)
   if err != nil {
     fmt.Println("failed to decoee Image")
-    return err;
+    return "", err;
   }
 
   fmt.Printf("left:%d, top:%d, width:%d, height:%d", left, top, width, height)
@@ -51,13 +51,17 @@ func cut (imageData []byte, left int, top int, width int, height int) error {
   outImage := decodedImage.(interface {
             SubImage(r image.Rectangle) image.Image
                   }).SubImage(outRect)
+  /**
+   * Output into file.
+   */
+  // outFile, err := os.Create("out.png")
+  // if err != nil {
+  //   fmt.Println("failed to create output file")
+  // }
+  // png.Encode(outFile,  outImage)
+  // defer outFile.Close()
 
-  outFile, err := os.Create("out.png")
-  if err != nil {
-    fmt.Println("failed to create output file")
-  }
-  png.Encode(outFile,  outImage)
-  defer outFile.Close()
-
-  return nil;
+  var buff bytes.Buffer
+  png.Encode(&buff, outImage)
+  return base64.StdEncoding.EncodeToString(buff.Bytes()), nil
 }
