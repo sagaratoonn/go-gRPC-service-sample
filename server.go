@@ -5,6 +5,11 @@ import (
     "context"
     "log"
     "net"
+    "bytes"
+    "image"
+    "image/png"
+    "os"
+    "encoding/base64"
 	"google.golang.org/grpc"
 	pb "./pb"
 )
@@ -21,11 +26,38 @@ func main() {
     server.Serve(listenPort)
 }
 
-type MyService struct {
-}
-
+type MyService struct {}
 func (s *MyService) CutImage(ctx context.Context, message *pb.CutRequest) (*pb.CutReply, error) {
     fmt.Println("receviced message:")
-    fmt.Println(message)
-        return &pb.CutReply{ Number: 3 }, nil
+
+    data, _ := base64.StdEncoding.DecodeString(message.Data);
+    cut(data, int(message.Left), int(message.Top), int(message.Width), int(message.Height));
+
+    return &pb.CutReply{ Result: "XXXYYYZZZ" }, nil
+}
+
+func cut (imageData []byte, left int, top int, width int, height int) error {
+
+  r := bytes.NewReader(imageData)
+  decodedImage, err := png.Decode(r)
+  if err != nil {
+    fmt.Println("failed to decoee Image")
+    return err;
+  }
+
+  fmt.Printf("left:%d, top:%d, width:%d, height:%d", left, top, width, height)
+  outRect := image.Rect(left, top, left + width, top + height)
+
+  outImage := decodedImage.(interface {
+            SubImage(r image.Rectangle) image.Image
+                  }).SubImage(outRect)
+
+  outFile, err := os.Create("out.png")
+  if err != nil {
+    fmt.Println("failed to create output file")
+  }
+  png.Encode(outFile,  outImage)
+  defer outFile.Close()
+
+  return nil;
 }
