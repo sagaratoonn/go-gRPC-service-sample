@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package cutter;
+
+// The greeting service definition.
+service Cutter {
+  // Sends a greeting
+  rpc CutImage (CutRequest) returns (CutReply) {}
+}
+
+message CutRequest {
+  string data = 1;
+}
+
+message CutReply {
+  int32 number = 1;
+}
